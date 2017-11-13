@@ -1,0 +1,17 @@
+.qmake.stash
+Makefile
+*.o
+libv_repExtK3.1.0.0.dylib
+libv_repExtK3.1.0.dylib
+libv_repExtK3.1.dylib
+libv_repExtK3.dylib
+libv_repExtK3.so
+libv_repExtK3.so.1
+libv_repExtK3.so.1.0
+libv_repExtK3.so.1.0.0
+Makefile.Debug
+Makefile.Release
+object_script.*.Debug
+object_script.*.Release
+debug/
+release/
