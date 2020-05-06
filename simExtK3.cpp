@@ -55,6 +55,19 @@ struct sK3
 std::vector<sK3> allK3s;
 int nextK3Handle=0;
 
+bool canOutputMsg(int msgType)
+{
+    int plugin_verbosity = sim_verbosity_default;
+    simGetModuleInfo("K3",sim_moduleinfo_verbosity,nullptr,&plugin_verbosity);
+    return(plugin_verbosity>=msgType);
+}
+
+void outputMsg(int msgType,const char* msg)
+{
+    if (canOutputMsg(msgType))
+        printf("%s\n",msg);
+}
+
 int getK3IndexFromHandle(int k3Handle)
 {
     for (unsigned int i=0;i<allK3s.size();i++)
@@ -581,25 +594,14 @@ SIM_DLLEXPORT unsigned char simStart(void* reservedPointer,int reservedInt)
     simLib=loadSimLibrary(temp.c_str());
     if (simLib==NULL)
     {
-        std::cout << "Error, could not find or correctly load coppeliaSim.dll. Cannot start 'K3' plugin.\n";
+        outputMsg(sim_verbosity_errors,"simExtK3 plugin error: could not find or correctly load coppeliaSim.dll. Cannot start 'K3' plugin.");
         return(0); // Means error, CoppeliaSim will unload this plugin
     }
     if (getSimProcAddresses(simLib)==0)
     {
-        std::cout << "Error, could not find all required functions in coppeliaSim.dll. Cannot start 'K3' plugin.\n";
+        outputMsg(sim_verbosity_errors,"simExtK3 plugin error: could not find all required functions in coppeliaSim.dll. Cannot start 'K3' plugin.");
         unloadSimLibrary(simLib);
         return(0); // Means error, CoppeliaSim will unload this plugin
-    }
-
-    // Check the CoppeliaSim version:
-    int simVer,simRev;
-    simGetIntegerParameter(sim_intparam_program_version,&simVer);
-    simGetIntegerParameter(sim_intparam_program_revision,&simRev);
-    if( (simVer<30400) || ((simVer==30400)&&(simRev<9)) )
-    {
-        std::cout << "Sorry, your CoppeliaSim copy is somewhat old, CoppeliaSim 3.4.0 rev9 or higher is required. Cannot start 'K3' plugin.\n";
-        unloadSimLibrary(simLib);
-        return(0);
     }
 
     simRegisterScriptVariable("simK3","require('simExtK3')",0);
