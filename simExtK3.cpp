@@ -594,12 +594,12 @@ SIM_DLLEXPORT unsigned char simStart(void* reservedPointer,int reservedInt)
     simLib=loadSimLibrary(temp.c_str());
     if (simLib==NULL)
     {
-        outputMsg(sim_verbosity_errors,"simExtK3 plugin error: could not find or correctly load coppeliaSim.dll. Cannot start 'K3' plugin.");
+        outputMsg(sim_verbosity_errors,"simExtK3: error: could not find or correctly load coppeliaSim.dll. Cannot start 'K3' plugin.");
         return(0); // Means error, CoppeliaSim will unload this plugin
     }
     if (getSimProcAddresses(simLib)==0)
     {
-        outputMsg(sim_verbosity_errors,"simExtK3 plugin error: could not find all required functions in coppeliaSim.dll. Cannot start 'K3' plugin.");
+        outputMsg(sim_verbosity_errors,"simExtK3: error: could not find all required functions in coppeliaSim.dll. Cannot start 'K3' plugin.");
         unloadSimLibrary(simLib);
         return(0); // Means error, CoppeliaSim will unload this plugin
     }
