@@ -55,19 +55,6 @@ struct sK3
 std::vector<sK3> allK3s;
 int nextK3Handle=0;
 
-bool canOutputMsg(int msgType)
-{
-    int plugin_verbosity = sim_verbosity_default;
-    simGetModuleInfo("K3",sim_moduleinfo_verbosity,nullptr,&plugin_verbosity);
-    return(plugin_verbosity>=msgType);
-}
-
-void outputMsg(int msgType,const char* msg)
-{
-    if (canOutputMsg(msgType))
-        printf("%s\n",msg);
-}
-
 int getK3IndexFromHandle(int k3Handle)
 {
     for (unsigned int i=0;i<allK3s.size();i++)
@@ -594,12 +581,12 @@ SIM_DLLEXPORT unsigned char simStart(void* reservedPointer,int reservedInt)
     simLib=loadSimLibrary(temp.c_str());
     if (simLib==NULL)
     {
-        outputMsg(sim_verbosity_errors,"simExtK3: error: could not find or correctly load coppeliaSim.dll. Cannot start 'K3' plugin.");
+        simAddLog("K3",sim_verbosity_errors,"could not find or correctly load the CoppeliaSim library. Cannot start the plugin.");
         return(0); // Means error, CoppeliaSim will unload this plugin
     }
     if (getSimProcAddresses(simLib)==0)
     {
-        outputMsg(sim_verbosity_errors,"simExtK3: error: could not find all required functions in coppeliaSim.dll. Cannot start 'K3' plugin.");
+        simAddLog("K3",sim_verbosity_errors,"could not find all required functions in the CoppeliaSim library. Cannot start the plugin.");
         unloadSimLibrary(simLib);
         return(0); // Means error, CoppeliaSim will unload this plugin
     }
