@@ -35,7 +35,6 @@ struct sK3
     int fingerMotorHandles[3];
     int gripperDistanceSensorHandles[2];
     int gripperColorSensorHandles[2];
-    int uiHandle;
     char* waitUntilZero;
 
     float maxVelocity;
@@ -71,7 +70,7 @@ int getK3IndexFromHandle(int k3Handle)
 #define LUA_CREATE_COMMAND "simK3.create"
 
 const int inArgs_CREATE[]={
-    9,
+    8,
     sim_script_arg_int32|sim_script_arg_table,2, // wheel motor handles
     sim_script_arg_int32|sim_script_arg_table,2, // color sensor handles
     sim_script_arg_int32|sim_script_arg_table,9, // IR sensor handles
@@ -80,7 +79,6 @@ const int inArgs_CREATE[]={
     sim_script_arg_int32|sim_script_arg_table,3, // finger motor handles
     sim_script_arg_int32|sim_script_arg_table,2, // gripper distance sensor handles
     sim_script_arg_int32|sim_script_arg_table,2, // gripper color sensor handles
-    sim_script_arg_int32,0, // UI handle
 };
 
 void LUA_CREATE_CALLBACK(SScriptCallBack* p)
@@ -95,7 +93,7 @@ void LUA_CREATE_CALLBACK(SScriptCallBack* p)
         k3.k3BaseHandle=p->objectID;
         handle=nextK3Handle++;
         k3.handle=handle;
-        k3.waitUntilZero=NULL;
+        k3.waitUntilZero=nullptr;
         for (unsigned int i=0;i<2;i++)
             k3.wheelMotorHandles[i]=inData->at(0).int32Data[i];
         for (unsigned int i=0;i<2;i++)
@@ -112,7 +110,6 @@ void LUA_CREATE_CALLBACK(SScriptCallBack* p)
             k3.gripperDistanceSensorHandles[i]=inData->at(6).int32Data[i];
         for (unsigned int i=0;i<2;i++)
             k3.gripperColorSensorHandles[i]=inData->at(7).int32Data[i];
-        k3.uiHandle=inData->at(8).int32Data[0];
 
         k3.maxVelocity=6.283f;
         k3.maxAcceleration=25.0f;
@@ -161,7 +158,7 @@ void LUA_DESTROY_CALLBACK(SScriptCallBack* p)
         int k3Index=getK3IndexFromHandle(handle);
         if (k3Index>=0)
         {
-            if (allK3s[k3Index].waitUntilZero!=NULL)
+            if (allK3s[k3Index].waitUntilZero!=nullptr)
                 allK3s[k3Index].waitUntilZero[0]=0; // free the blocked thread
             allK3s.erase(allK3s.begin()+k3Index);
             success=true;
@@ -202,7 +199,7 @@ void LUA_GETINFRARED_CALLBACK(SScriptCallBack* p)
             if ( (sensorIndex>=0)&&(sensorIndex<9) )
             {
                 float ptAndDist[4];
-                if (((simGetExplicitHandling(allK3s[k3Index].irSensorHandles[sensorIndex])&1)==0)&&(simReadProximitySensor(allK3s[k3Index].irSensorHandles[sensorIndex],ptAndDist,NULL,NULL)>0))
+                if (((simGetExplicitHandling(allK3s[k3Index].irSensorHandles[sensorIndex])&1)==0)&&(simReadProximitySensor(allK3s[k3Index].irSensorHandles[sensorIndex],ptAndDist,nullptr,nullptr)>0))
                     distance=ptAndDist[3];
                 success=true;
             }
@@ -245,7 +242,7 @@ void LUA_GETULTRASONIC_CALLBACK(SScriptCallBack* p)
             if ( (sensorIndex>=0)&&(sensorIndex<5) )
             {
                 float ptAndDist[4];
-                if (((simGetExplicitHandling(allK3s[k3Index].usSensorHandles[sensorIndex])&1)==0)&&(simReadProximitySensor(allK3s[k3Index].usSensorHandles[sensorIndex],ptAndDist,NULL,NULL)>0))
+                if (((simGetExplicitHandling(allK3s[k3Index].usSensorHandles[sensorIndex])&1)==0)&&(simReadProximitySensor(allK3s[k3Index].usSensorHandles[sensorIndex],ptAndDist,nullptr,nullptr)>0))
                     distance=ptAndDist[3];
                 success=true;
             }
@@ -287,8 +284,8 @@ void LUA_GETLINESENSOR_CALLBACK(SScriptCallBack* p)
         {
             if ( (sensorIndex>=0)&&(sensorIndex<2) )
             {
-                float* auxValues=NULL;
-                int* auxValuesCount=NULL;
+                float* auxValues=nullptr;
+                int* auxValuesCount=nullptr;
                 if (simReadVisionSensor(allK3s[k3Index].colorSensorHandles[sensorIndex],&auxValues,&auxValuesCount)>=0)
                 {
                     if ((auxValuesCount[0]>0)||(auxValuesCount[1]>=15))
@@ -378,7 +375,7 @@ void LUA_GETGRIPPERPROXSENSOR_CALLBACK(SScriptCallBack* p)
             if ( (sensorIndex>=0)&&(sensorIndex<2) )
             {
                 float ptAndDist[4];
-                if (((simGetExplicitHandling(allK3s[k3Index].gripperDistanceSensorHandles[sensorIndex])&1)==0)&&(simReadProximitySensor(allK3s[k3Index].gripperDistanceSensorHandles[sensorIndex],ptAndDist,NULL,NULL)>0))
+                if (((simGetExplicitHandling(allK3s[k3Index].gripperDistanceSensorHandles[sensorIndex])&1)==0)&&(simReadProximitySensor(allK3s[k3Index].gripperDistanceSensorHandles[sensorIndex],ptAndDist,nullptr,nullptr)>0))
                     distance=ptAndDist[3];
                 success=true;
             }
@@ -560,7 +557,7 @@ SIM_DLLEXPORT unsigned char simStart(void* reservedPointer,int reservedInt)
     #ifdef QT_COMPIL
         _getcwd(curDirAndFile, sizeof(curDirAndFile));
     #else
-        GetModuleFileName(NULL,curDirAndFile,1023);
+        GetModuleFileName(nullptr,curDirAndFile,1023);
         PathRemoveFileSpec(curDirAndFile);
     #endif
 #elif defined (__linux) || defined (__APPLE__)
@@ -579,7 +576,7 @@ SIM_DLLEXPORT unsigned char simStart(void* reservedPointer,int reservedInt)
 #endif /* __linux || __APPLE__ */
 
     simLib=loadSimLibrary(temp.c_str());
-    if (simLib==NULL)
+    if (simLib==nullptr)
     {
         printf("simExtK3: error: could not find or correctly load the CoppeliaSim library. Cannot start the plugin.\n"); // cannot use simAddLog here.
         return(0); // Means error, CoppeliaSim will unload this plugin
@@ -594,7 +591,7 @@ SIM_DLLEXPORT unsigned char simStart(void* reservedPointer,int reservedInt)
     simRegisterScriptVariable("simK3","require('simExtK3')",0);
 
     // Register the new functions:
-    simRegisterScriptCallbackFunction(strConCat(LUA_CREATE_COMMAND,"@","K3"),strConCat("number k3Handle=",LUA_CREATE_COMMAND,"(table_2 wheelMotorHandles,table_2 colorSensorHandles,table_9 IrSensorHandles,table_5 usSensorHandles,table_6 armMotorHandles,table_3 fingerMotorHandles,table_2 gripperDistSensHandles,table_2 gripperColSensHandles,number uiHandle)"),LUA_CREATE_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_CREATE_COMMAND,"@","K3"),strConCat("number k3Handle=",LUA_CREATE_COMMAND,"(table_2 wheelMotorHandles,table_2 colorSensorHandles,table_9 IrSensorHandles,table_5 usSensorHandles,table_6 armMotorHandles,table_3 fingerMotorHandles,table_2 gripperDistSensHandles,table_2 gripperColSensHandles)"),LUA_CREATE_CALLBACK);
     simRegisterScriptCallbackFunction(strConCat(LUA_DESTROY_COMMAND,"@","K3"),strConCat("boolean result=",LUA_DESTROY_COMMAND,"(number k3Handle)"),LUA_DESTROY_CALLBACK);
     simRegisterScriptCallbackFunction(strConCat(LUA_GETINFRARED_COMMAND,"@","K3"),strConCat("number distance=",LUA_GETINFRARED_COMMAND,"(number k3Handle,number index)"),LUA_GETINFRARED_CALLBACK);
     simRegisterScriptCallbackFunction(strConCat(LUA_GETULTRASONIC_COMMAND,"@","K3"),strConCat("number distance=",LUA_GETULTRASONIC_COMMAND,"(number k3Handle,number index)"),LUA_GETULTRASONIC_CALLBACK);
@@ -652,11 +649,11 @@ SIM_DLLEXPORT void* simMessage(int message,int* auxiliaryData,void* customData,i
     simGetIntegerParameter(sim_intparam_error_report_mode,&errorModeSaved);
     simSetIntegerParameter(sim_intparam_error_report_mode,sim_api_errormessage_ignore);
 
-    void* retVal=NULL;
+    void* retVal=nullptr;
 
     if (message==sim_message_eventcallback_modulehandle)
     {
-        if ( (customData==NULL)||(std::string("K3").compare((char*)customData)==0) ) // is the command also meant for Khepera3?
+        if ( (customData==nullptr)||(std::string("K3").compare((char*)customData)==0) ) // is the command also meant for Khepera3?
         {
             float dt=simGetSimulationTimeStep();
             for (unsigned int k3Index=0;k3Index<allK3s.size();k3Index++)
@@ -743,137 +740,6 @@ SIM_DLLEXPORT void* simMessage(int message,int* auxiliaryData,void* customData,i
                 simSetJointTargetVelocity(allK3s[k3Index].fingerMotorHandles[0],velToRegulate); 
                 simSetJointTargetPosition(allK3s[k3Index].fingerMotorHandles[1],-jp*0.5f); 
                 simSetJointTargetPosition(allK3s[k3Index].fingerMotorHandles[2],-jp*0.5f);
-
-                // 2. Update the robot's UI:
-                // IR sensors on the base:
-                float ptAndDist[4];
-                std::string s;
-                for (int i=0;i<9;i++)
-                {
-                    if (((simGetExplicitHandling(allK3s[k3Index].irSensorHandles[i])&1)==0)&&(simReadProximitySensor(allK3s[k3Index].irSensorHandles[i],ptAndDist,NULL,NULL)>0))
-                    {
-                        simSetUIButtonLabel(allK3s[k3Index].uiHandle,110+i,"&&Box",NULL);
-                        std::stringstream out;
-                        out << int(ptAndDist[3]*1000.0f);
-                        s=out.str();
-                        simSetUIButtonLabel(allK3s[k3Index].uiHandle,210+i,s.c_str(),NULL);
-                    }
-                    else
-                    {
-                        simSetUIButtonLabel(allK3s[k3Index].uiHandle,110+i,"",NULL);
-                        simSetUIButtonLabel(allK3s[k3Index].uiHandle,210+i,"",NULL);
-                    }
-                }
-                
-                // UI title:
-                char* objName=simGetObjectName(allK3s[k3Index].k3BaseHandle);
-                if (objName!=NULL)
-                {
-                    std::string nm(objName);
-                    simReleaseBuffer(objName);
-                    nm+=" state visualization";
-                    simSetUIButtonLabel(allK3s[k3Index].uiHandle,0,nm.c_str(),NULL);
-                }
-
-                // US sensors on the base:
-                for (int i=0;i<5;i++)
-                {
-                    if (((simGetExplicitHandling(allK3s[k3Index].usSensorHandles[i])&1)==0)&&(simReadProximitySensor(allK3s[k3Index].usSensorHandles[i],ptAndDist,NULL,NULL)>0))
-                    {
-                        simSetUIButtonLabel(allK3s[k3Index].uiHandle,100+i,"&&Box",NULL);
-                        std::stringstream out;
-                        out << int(ptAndDist[3]*1000.0f);
-                        s=out.str();
-                        simSetUIButtonLabel(allK3s[k3Index].uiHandle,200+i,s.c_str(),NULL);
-                    }
-                    else
-                    {
-                        simSetUIButtonLabel(allK3s[k3Index].uiHandle,100+i,"",NULL);
-                        simSetUIButtonLabel(allK3s[k3Index].uiHandle,200+i,"",NULL);
-                    }
-                }
-                // Color sensors on base:
-                for (int i=0;i<2;i++)
-                {
-                    float* auxValues=NULL;
-                    int* auxValuesCount=NULL;
-                    float col[3]={0.0f,0.0f,0.0f};
-                    if (simReadVisionSensor(allK3s[k3Index].colorSensorHandles[i],&auxValues,&auxValuesCount)>=0)
-                    {
-                        if ((auxValuesCount[0]>0)||(auxValuesCount[1]>=15))
-                        {
-                            col[0]=auxValues[11];
-                            col[1]=auxValues[12];
-                            col[2]=auxValues[13];
-                        }
-                        simReleaseBuffer((char*)auxValues);
-                        simReleaseBuffer((char*)auxValuesCount);
-                    }
-                    simSetUIButtonColor(allK3s[k3Index].uiHandle,300+i,col,NULL,NULL);
-                }
-
-                // Base motor velocities and encoders:
-                for (int i=0;i<2;i++)
-                {
-                    std::stringstream out1,out2;
-                    out1 << std::fixed << std::setprecision(1) << allK3s[k3Index].currentVelocities[i]*180.0f/3.1415f;
-                    s=out1.str();
-                    simSetUIButtonLabel(allK3s[k3Index].uiHandle,320+i,s.c_str(),NULL);
-
-                    out2 << int(float(2764)*allK3s[k3Index].cumulativeMotorAngles[i]/(2.0f*3.1415f));
-                    s=out2.str();
-                    simSetUIButtonLabel(allK3s[k3Index].uiHandle,310+i,s.c_str(),NULL);
-                }
-
-                // Arm position:
-                std::stringstream out;
-                out << int((1.0f-(allK3s[k3Index].currentArmPosition*180.0f/(195.0f*3.1415f)))*600.0f+300.0f);
-                s=out.str();
-                simSetUIButtonLabel(allK3s[k3Index].uiHandle,120,s.c_str(),NULL);
-                simSetUISlider(allK3s[k3Index].uiHandle,121,int(1000.0f*allK3s[k3Index].currentArmPosition*180.0f/(195.0f*3.1415f)));
-
-                // Finger motors:
-                out.str("");
-                out << int(allK3s[k3Index].currentGripperGap*1000.0f);
-                s=out.str();
-                simSetUIButtonLabel(allK3s[k3Index].uiHandle,130,s.c_str(),NULL);
-                simSetUISlider(allK3s[k3Index].uiHandle,131,int(0.5f+(1.0f-allK3s[k3Index].currentGripperGap/0.055f)*1000.0f));
-                simSetUISlider(allK3s[k3Index].uiHandle,132,int(0.5f+(allK3s[k3Index].currentGripperGap/0.055f)*1000.0f));
-
-
-                // Gripper proximity sensors:
-                for (int i=0;i<2;i++)
-                {
-                    if (((simGetExplicitHandling(allK3s[k3Index].gripperDistanceSensorHandles[i])&1)==0)&&(simReadProximitySensor(allK3s[k3Index].gripperDistanceSensorHandles[i],ptAndDist,NULL,NULL)>0))
-                    {
-                        out.str("");
-                        out << int(ptAndDist[3]*1000.0f);
-                        s=out.str();
-                        simSetUIButtonLabel(allK3s[k3Index].uiHandle,133+i,s.c_str(),NULL);
-                    }
-                    else
-                        simSetUIButtonLabel(allK3s[k3Index].uiHandle,133+i,"",NULL);
-                }
-                // Gripper color sensors:
-                for (int i=0;i<2;i++)
-                {
-                    float* auxValues=NULL;
-                    int* auxValuesCount=NULL;
-                    float col[3]={0.0f,0.0f,0.0f};
-                    if (simReadVisionSensor(allK3s[k3Index].gripperColorSensorHandles[i],&auxValues,&auxValuesCount)>=0)
-                    {
-                        if ((auxValuesCount[0]>0)||(auxValuesCount[1]>=15))
-                        {
-                            col[0]=auxValues[11];
-                            col[1]=auxValues[12];
-                            col[2]=auxValues[13];
-                        }
-                        simReleaseBuffer((char*)auxValues);
-                        simReleaseBuffer((char*)auxValuesCount);
-                    }
-                    simSetUIButtonColor(allK3s[k3Index].uiHandle,135+i,col,NULL,NULL);
-                }
-
             }
         }
     }
