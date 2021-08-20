@@ -13,10 +13,10 @@
         #include <shlwapi.h>
         #pragma comment(lib, "Shlwapi.lib")
     #endif
-#endif /* _WIN32 */
+#endif
 #if defined (__linux) || defined (__APPLE__)
     #include <unistd.h>
-#endif /* __linux || __APPLE__ */
+#endif
 
 #define CONCAT(x,y,z) x y z
 #define strConCat(x,y,z)    CONCAT(x,y,z)
@@ -27,6 +27,7 @@ struct sK3
 {
     int k3BaseHandle;
     int handle;
+    int scriptHandle;
     int wheelMotorHandles[2];
     int colorSensorHandles[2];
     int irSensorHandles[9];
@@ -35,7 +36,6 @@ struct sK3
     int fingerMotorHandles[3];
     int gripperDistanceSensorHandles[2];
     int gripperColorSensorHandles[2];
-    char* waitUntilZero;
 
     float maxVelocity;
     float maxAcceleration;
@@ -59,6 +59,16 @@ int getK3IndexFromHandle(int k3Handle)
     for (unsigned int i=0;i<allK3s.size();i++)
     {
         if (allK3s[i].handle==k3Handle)
+            return(i);
+    }
+    return(-1);
+}
+
+int getK3IndexFromScriptHandle(int h)
+{
+    for (unsigned int i=0;i<allK3s.size();i++)
+    {
+        if (allK3s[i].scriptHandle==h)
             return(i);
     }
     return(-1);
@@ -93,7 +103,7 @@ void LUA_CREATE_CALLBACK(SScriptCallBack* p)
         k3.k3BaseHandle=p->objectID;
         handle=nextK3Handle++;
         k3.handle=handle;
-        k3.waitUntilZero=nullptr;
+        k3.scriptHandle=p->scriptID;
         for (unsigned int i=0;i<2;i++)
             k3.wheelMotorHandles[i]=inData->at(0).int32Data[i];
         for (unsigned int i=0;i<2;i++)
@@ -158,8 +168,6 @@ void LUA_DESTROY_CALLBACK(SScriptCallBack* p)
         int k3Index=getK3IndexFromHandle(handle);
         if (k3Index>=0)
         {
-            if (allK3s[k3Index].waitUntilZero!=nullptr)
-                allK3s[k3Index].waitUntilZero[0]=0; // free the blocked thread
             allK3s.erase(allK3s.begin()+k3Index);
             success=true;
         }
@@ -551,7 +559,6 @@ void LUA_SETENCODERS_CALLBACK(SScriptCallBack* p)
 
 SIM_DLLEXPORT unsigned char simStart(void* reservedPointer,int reservedInt)
 { // This is called just once, at the start of CoppeliaSim.
-    // Dynamically load and bind CoppeliaSim functions:
     char curDirAndFile[1024];
 #ifdef _WIN32
     #ifdef QT_COMPIL
@@ -573,7 +580,7 @@ SIM_DLLEXPORT unsigned char simStart(void* reservedPointer,int reservedInt)
     temp+="/libcoppeliaSim.so";
 #elif defined (__APPLE__)
     temp+="/libcoppeliaSim.dylib";
-#endif /* __linux || __APPLE__ */
+#endif
 
     simLib=loadSimLibrary(temp.c_str());
     if (simLib==nullptr)
@@ -627,14 +634,11 @@ SIM_DLLEXPORT unsigned char simStart(void* reservedPointer,int reservedInt)
     simRegisterScriptVariable("simExtK3_setEncoders",LUA_SETENCODERS_COMMAND,-1);
     simRegisterScriptCallbackFunction(strConCat("simExtK3_setEncoders","@","K3"),strConCat("Please use the ",LUA_SETENCODERS_COMMAND," notation instead"),0);
 
-    return(8); // initialization went fine, we return the version number of this plugin (can be queried with simGetModuleName)
-    // version 1 was for CoppeliaSim 2.5.11 and below
-    // version 2 was for CoppeliaSim 2.5.12 and below
-    // version 3 was for CoppeliaSim 3.0.5 and below
-    // version 4 was for CoppeliaSim 3.1.3 and below
+    return(9); // initialization went fine, we return the version number of this plugin (can be queried with simGetModuleName)
     // version 6 is for CoppeliaSim versions after CoppeliaSim 3.2.0 (completely rewritten)
     // version 7 is for CoppeliaSim versions after CoppeliaSim 3.3.0 (using stacks to exchange data with scripts)
     // version 8 is for CoppeliaSim versions after CoppeliaSim 3.4.0 (new API notation)
+    // version 9 is for CoppeliaSim versions after CoppeliaSim 4.2.0
 }
 
 SIM_DLLEXPORT void simEnd()
@@ -644,111 +648,107 @@ SIM_DLLEXPORT void simEnd()
 
 SIM_DLLEXPORT void* simMessage(int message,int* auxiliaryData,void* customData,int* replyData)
 { // This is called quite often. Just watch out for messages/events you want to handle
-    // This function should not generate any error messages:
-    int errorModeSaved;
-    simGetIntegerParameter(sim_intparam_error_report_mode,&errorModeSaved);
-    simSetIntegerParameter(sim_intparam_error_report_mode,sim_api_errormessage_ignore);
-
     void* retVal=nullptr;
 
-    if (message==sim_message_eventcallback_modulehandle)
-    {
-        if ( (customData==nullptr)||(std::string("K3").compare((char*)customData)==0) ) // is the command also meant for Khepera3?
+    if ( (message==sim_message_eventcallback_simulationactuation)&&(auxiliaryData[0]==0) )
+    { // the main script's actuation section is about to be executed
+        float dt=simGetSimulationTimeStep();
+        for (unsigned int k3Index=0;k3Index<allK3s.size();k3Index++)
         {
-            float dt=simGetSimulationTimeStep();
-            for (unsigned int k3Index=0;k3Index<allK3s.size();k3Index++)
+            // 1. Run the robot control:
+            for (int i=0;i<2;i++)
             {
-                // 1. Run the robot control:
-                for (int i=0;i<2;i++)
+                if (allK3s[k3Index].targetVelocities[i]>allK3s[k3Index].currentVelocities[i])
                 {
-                    if (allK3s[k3Index].targetVelocities[i]>allK3s[k3Index].currentVelocities[i])
-                    {
-                        allK3s[k3Index].currentVelocities[i]=allK3s[k3Index].currentVelocities[i]+allK3s[k3Index].maxAcceleration*dt;
-                        if (allK3s[k3Index].currentVelocities[i]>allK3s[k3Index].targetVelocities[i])
-                            allK3s[k3Index].currentVelocities[i]=allK3s[k3Index].targetVelocities[i];
-                    }
-                    else
-                    {
-                        allK3s[k3Index].currentVelocities[i]=allK3s[k3Index].currentVelocities[i]-allK3s[k3Index].maxAcceleration*dt;
-                        if (allK3s[k3Index].currentVelocities[i]<allK3s[k3Index].targetVelocities[i])
-                            allK3s[k3Index].currentVelocities[i]=allK3s[k3Index].targetVelocities[i];
-                    }
-                    simSetJointTargetVelocity(allK3s[k3Index].wheelMotorHandles[i],allK3s[k3Index].currentVelocities[i]);
-                    float jp;
-                    simGetJointPosition(allK3s[k3Index].wheelMotorHandles[i],&jp);
-                    float dp=jp-allK3s[k3Index].previousMotorAngles[i];
-                    if (fabs(dp)>3.1415f)
-                        dp-=(2.0f*3.1415f*fabs(dp)/dp);
-                    allK3s[k3Index].cumulativeMotorAngles[i]+=dp; // corrected on 5/3/2012 thanks to Felix Fischer
-                    allK3s[k3Index].previousMotorAngles[i]=jp;
-                }
-
-
-                float adp=allK3s[k3Index].targetArmPosition-allK3s[k3Index].currentArmPosition;
-                if (adp!=0.0f)
-                {
-                    if (adp*allK3s[k3Index].currentArmVelocity>=0.0f)
-                    {
-                        float decelToZeroTime=(fabs(allK3s[k3Index].currentArmVelocity)+allK3s[k3Index].maxArmAcceleration*dt*1.0f)/allK3s[k3Index].maxArmAcceleration;
-                        float distToZero=0.5f*allK3s[k3Index].maxArmAcceleration*decelToZeroTime*decelToZeroTime;
-                        float dir=1.0f;
-                        if (allK3s[k3Index].currentArmVelocity!=0.0f)
-                            dir=allK3s[k3Index].currentArmVelocity/fabs(allK3s[k3Index].currentArmVelocity);
-                        else
-                            dir=adp/fabs(adp);
-                        if (fabs(adp)>distToZero)
-                            allK3s[k3Index].currentArmVelocity+=dir*allK3s[k3Index].maxArmAcceleration*dt;
-                        else
-                            allK3s[k3Index].currentArmVelocity-=dir*allK3s[k3Index].maxArmAcceleration*dt;
-                    }
-                    else
-                        allK3s[k3Index].currentArmVelocity*=(1-allK3s[k3Index].maxArmAcceleration*dt/fabs(allK3s[k3Index].currentArmVelocity));
+                    allK3s[k3Index].currentVelocities[i]=allK3s[k3Index].currentVelocities[i]+allK3s[k3Index].maxAcceleration*dt;
+                    if (allK3s[k3Index].currentVelocities[i]>allK3s[k3Index].targetVelocities[i])
+                        allK3s[k3Index].currentVelocities[i]=allK3s[k3Index].targetVelocities[i];
                 }
                 else
                 {
-                    if (allK3s[k3Index].currentArmVelocity!=0.0f)
-                    {
-                        float dv=-allK3s[k3Index].currentArmVelocity*allK3s[k3Index].maxArmAcceleration*dt/fabs(allK3s[k3Index].currentArmVelocity);
-                        if ((allK3s[k3Index].currentArmVelocity+dv)*allK3s[k3Index].currentArmVelocity<0.0f)
-                            allK3s[k3Index].currentArmVelocity=0.0f;
-                        else
-                            allK3s[k3Index].currentArmVelocity+=dv;
-                    }
+                    allK3s[k3Index].currentVelocities[i]=allK3s[k3Index].currentVelocities[i]-allK3s[k3Index].maxAcceleration*dt;
+                    if (allK3s[k3Index].currentVelocities[i]<allK3s[k3Index].targetVelocities[i])
+                        allK3s[k3Index].currentVelocities[i]=allK3s[k3Index].targetVelocities[i];
                 }
-
-                allK3s[k3Index].currentArmPosition+=allK3s[k3Index].currentArmVelocity*dt;
-
-                simSetJointTargetPosition(allK3s[k3Index].armMotorHandles[0],allK3s[k3Index].currentArmPosition);
-                simSetJointTargetPosition(allK3s[k3Index].armMotorHandles[1],-allK3s[k3Index].currentArmPosition);
-                simSetJointTargetPosition(allK3s[k3Index].armMotorHandles[2],allK3s[k3Index].currentArmPosition);
-                simSetJointTargetPosition(allK3s[k3Index].armMotorHandles[3],allK3s[k3Index].currentArmPosition);
-                simSetJointTargetPosition(allK3s[k3Index].armMotorHandles[4],allK3s[k3Index].currentArmPosition);
-                simSetJointTargetPosition(allK3s[k3Index].armMotorHandles[5],allK3s[k3Index].currentArmPosition);
-
+                simSetJointTargetVelocity(allK3s[k3Index].wheelMotorHandles[i],allK3s[k3Index].currentVelocities[i]);
                 float jp;
-                simGetJointPosition(allK3s[k3Index].fingerMotorHandles[0],&jp);
-                allK3s[k3Index].currentGripperGap=(jp)+0.04f;
-                float dp=allK3s[k3Index].targetGripperGap-allK3s[k3Index].currentGripperGap;
-                float velToRegulate=0.0f;
-                if (fabs(dp)<0.005f)
+                simGetJointPosition(allK3s[k3Index].wheelMotorHandles[i],&jp);
+                float dp=jp-allK3s[k3Index].previousMotorAngles[i];
+                if (fabs(dp)>3.1415f)
+                    dp-=(2.0f*3.1415f*fabs(dp)/dp);
+                allK3s[k3Index].cumulativeMotorAngles[i]+=dp; // corrected on 5/3/2012 thanks to Felix Fischer
+                allK3s[k3Index].previousMotorAngles[i]=jp;
+            }
+
+
+            float adp=allK3s[k3Index].targetArmPosition-allK3s[k3Index].currentArmPosition;
+            if (adp!=0.0f)
+            {
+                if (adp*allK3s[k3Index].currentArmVelocity>=0.0f)
                 {
-                    if (dp!=0.0f)
-                        velToRegulate=(fabs(dp)/0.005f)*0.045f*dp/fabs(dp);
+                    float decelToZeroTime=(fabs(allK3s[k3Index].currentArmVelocity)+allK3s[k3Index].maxArmAcceleration*dt*1.0f)/allK3s[k3Index].maxArmAcceleration;
+                    float distToZero=0.5f*allK3s[k3Index].maxArmAcceleration*decelToZeroTime*decelToZeroTime;
+                    float dir=1.0f;
+                    if (allK3s[k3Index].currentArmVelocity!=0.0f)
+                        dir=allK3s[k3Index].currentArmVelocity/fabs(allK3s[k3Index].currentArmVelocity);
+                    else
+                        dir=adp/fabs(adp);
+                    if (fabs(adp)>distToZero)
+                        allK3s[k3Index].currentArmVelocity+=dir*allK3s[k3Index].maxArmAcceleration*dt;
+                    else
+                        allK3s[k3Index].currentArmVelocity-=dir*allK3s[k3Index].maxArmAcceleration*dt;
                 }
                 else
-                    velToRegulate=0.045f*dp/fabs(dp);
-                simSetJointTargetVelocity(allK3s[k3Index].fingerMotorHandles[0],velToRegulate); 
-                simSetJointTargetPosition(allK3s[k3Index].fingerMotorHandles[1],-jp*0.5f); 
-                simSetJointTargetPosition(allK3s[k3Index].fingerMotorHandles[2],-jp*0.5f);
+                    allK3s[k3Index].currentArmVelocity*=(1-allK3s[k3Index].maxArmAcceleration*dt/fabs(allK3s[k3Index].currentArmVelocity));
             }
+            else
+            {
+                if (allK3s[k3Index].currentArmVelocity!=0.0f)
+                {
+                    float dv=-allK3s[k3Index].currentArmVelocity*allK3s[k3Index].maxArmAcceleration*dt/fabs(allK3s[k3Index].currentArmVelocity);
+                    if ((allK3s[k3Index].currentArmVelocity+dv)*allK3s[k3Index].currentArmVelocity<0.0f)
+                        allK3s[k3Index].currentArmVelocity=0.0f;
+                    else
+                        allK3s[k3Index].currentArmVelocity+=dv;
+                }
+            }
+
+            allK3s[k3Index].currentArmPosition+=allK3s[k3Index].currentArmVelocity*dt;
+
+            simSetJointTargetPosition(allK3s[k3Index].armMotorHandles[0],allK3s[k3Index].currentArmPosition);
+            simSetJointTargetPosition(allK3s[k3Index].armMotorHandles[1],-allK3s[k3Index].currentArmPosition);
+            simSetJointTargetPosition(allK3s[k3Index].armMotorHandles[2],allK3s[k3Index].currentArmPosition);
+            simSetJointTargetPosition(allK3s[k3Index].armMotorHandles[3],allK3s[k3Index].currentArmPosition);
+            simSetJointTargetPosition(allK3s[k3Index].armMotorHandles[4],allK3s[k3Index].currentArmPosition);
+            simSetJointTargetPosition(allK3s[k3Index].armMotorHandles[5],allK3s[k3Index].currentArmPosition);
+
+            float jp;
+            simGetJointPosition(allK3s[k3Index].fingerMotorHandles[0],&jp);
+            allK3s[k3Index].currentGripperGap=(jp)+0.04f;
+            float dp=allK3s[k3Index].targetGripperGap-allK3s[k3Index].currentGripperGap;
+            float velToRegulate=0.0f;
+            if (fabs(dp)<0.005f)
+            {
+                if (dp!=0.0f)
+                    velToRegulate=(fabs(dp)/0.005f)*0.045f*dp/fabs(dp);
+            }
+            else
+                velToRegulate=0.045f*dp/fabs(dp);
+            simSetJointTargetVelocity(allK3s[k3Index].fingerMotorHandles[0],velToRegulate);
+            simSetJointTargetPosition(allK3s[k3Index].fingerMotorHandles[1],-jp*0.5f);
+            simSetJointTargetPosition(allK3s[k3Index].fingerMotorHandles[2],-jp*0.5f);
         }
     }
 
-    if (message==sim_message_eventcallback_simulationended)
-    { // simulation ended. Destroy all Khepera3 instances:
-        allK3s.clear();
+    if (message==sim_message_eventcallback_scriptstatedestroyed)
+    { // script state was destroyed. Destroy all associated BubbleRob instances:
+        int index=getK3IndexFromScriptHandle(auxiliaryData[0]);
+        while (index>=0)
+        {
+            allK3s.erase(allK3s.begin()+index);
+            index=getK3IndexFromScriptHandle(auxiliaryData[0]);
+        }
     }
 
-    simSetIntegerParameter(sim_intparam_error_report_mode,errorModeSaved); // restore previous settings
     return(retVal);
 }
