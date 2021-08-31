@@ -595,8 +595,6 @@ SIM_DLLEXPORT unsigned char simStart(void* reservedPointer,int reservedInt)
         return(0); // Means error, CoppeliaSim will unload this plugin
     }
 
-    simRegisterScriptVariable("simK3","require('simExtK3')",0);
-
     // Register the new functions:
     simRegisterScriptCallbackFunction(strConCat(LUA_CREATE_COMMAND,"@","K3"),strConCat("number k3Handle=",LUA_CREATE_COMMAND,"(table_2 wheelMotorHandles,table_2 colorSensorHandles,table_9 IrSensorHandles,table_5 usSensorHandles,table_6 armMotorHandles,table_3 fingerMotorHandles,table_2 gripperDistSensHandles,table_2 gripperColSensHandles)"),LUA_CREATE_CALLBACK);
     simRegisterScriptCallbackFunction(strConCat(LUA_DESTROY_COMMAND,"@","K3"),strConCat("boolean result=",LUA_DESTROY_COMMAND,"(number k3Handle)"),LUA_DESTROY_CALLBACK);
