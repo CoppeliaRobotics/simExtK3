@@ -596,17 +596,17 @@ SIM_DLLEXPORT unsigned char simStart(void* reservedPointer,int reservedInt)
     }
 
     // Register the new functions:
-    simRegisterScriptCallbackFunction(strConCat(LUA_CREATE_COMMAND,"@","K3"),strConCat("number k3Handle=",LUA_CREATE_COMMAND,"(table_2 wheelMotorHandles,table_2 colorSensorHandles,table_9 IrSensorHandles,table_5 usSensorHandles,table_6 armMotorHandles,table_3 fingerMotorHandles,table_2 gripperDistSensHandles,table_2 gripperColSensHandles)"),LUA_CREATE_CALLBACK);
-    simRegisterScriptCallbackFunction(strConCat(LUA_DESTROY_COMMAND,"@","K3"),strConCat("boolean result=",LUA_DESTROY_COMMAND,"(number k3Handle)"),LUA_DESTROY_CALLBACK);
-    simRegisterScriptCallbackFunction(strConCat(LUA_GETINFRARED_COMMAND,"@","K3"),strConCat("number distance=",LUA_GETINFRARED_COMMAND,"(number k3Handle,number index)"),LUA_GETINFRARED_CALLBACK);
-    simRegisterScriptCallbackFunction(strConCat(LUA_GETULTRASONIC_COMMAND,"@","K3"),strConCat("number distance=",LUA_GETULTRASONIC_COMMAND,"(number k3Handle,number index)"),LUA_GETULTRASONIC_CALLBACK);
-    simRegisterScriptCallbackFunction(strConCat(LUA_GETLINESENSOR_COMMAND,"@","K3"),strConCat("number intensity=",LUA_GETLINESENSOR_COMMAND,"(number k3Handle,number index)"),LUA_GETLINESENSOR_CALLBACK);
-    simRegisterScriptCallbackFunction(strConCat(LUA_GETENCODER_COMMAND,"@","K3"),strConCat("number encoderValue=",LUA_GETENCODER_COMMAND,"(number k3Handle,number index)"),LUA_GETENCODER_CALLBACK);
-    simRegisterScriptCallbackFunction(strConCat(LUA_GETGRIPPERPROXSENSOR_COMMAND,"@","K3"),strConCat("number distance=",LUA_GETGRIPPERPROXSENSOR_COMMAND,"(number k3Handle,number index)"),LUA_GETGRIPPERPROXSENSOR_CALLBACK);
-    simRegisterScriptCallbackFunction(strConCat(LUA_SETARMPOSITION_COMMAND,"@","K3"),strConCat("boolean result=",LUA_SETARMPOSITION_COMMAND,"(number k3Handle,number position)"),LUA_SETARMPOSITION_CALLBACK);
-    simRegisterScriptCallbackFunction(strConCat(LUA_SETGRIPPERGAP_COMMAND,"@","K3"),strConCat("boolean result=",LUA_SETGRIPPERGAP_COMMAND,"(number k3Handle,number gap)"),LUA_SETGRIPPERGAP_CALLBACK);
-    simRegisterScriptCallbackFunction(strConCat(LUA_SETVELOCITY_COMMAND,"@","K3"),strConCat("boolean result=",LUA_SETVELOCITY_COMMAND,"(number k3Handle,number leftVelocity,number rightVelocity)"),LUA_SETVELOCITY_CALLBACK);
-    simRegisterScriptCallbackFunction(strConCat(LUA_SETENCODERS_COMMAND,"@","K3"),strConCat("boolean result=",LUA_SETENCODERS_COMMAND,"(number k3Handle,number leftEncoderValue,number rightEncoderValue)"),LUA_SETENCODERS_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_CREATE_COMMAND,"@","K3"),strConCat("int k3Handle=",LUA_CREATE_COMMAND,"(table_2 wheelMotorHandles,table_2 colorSensorHandles,table_9 IrSensorHandles,table_5 usSensorHandles,table_6 armMotorHandles,table_3 fingerMotorHandles,table_2 gripperDistSensHandles,table_2 gripperColSensHandles)"),LUA_CREATE_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_DESTROY_COMMAND,"@","K3"),strConCat("bool result=",LUA_DESTROY_COMMAND,"(int k3Handle)"),LUA_DESTROY_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_GETINFRARED_COMMAND,"@","K3"),strConCat("float distance=",LUA_GETINFRARED_COMMAND,"(int k3Handle,int index)"),LUA_GETINFRARED_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_GETULTRASONIC_COMMAND,"@","K3"),strConCat("float distance=",LUA_GETULTRASONIC_COMMAND,"(int k3Handle,int index)"),LUA_GETULTRASONIC_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_GETLINESENSOR_COMMAND,"@","K3"),strConCat("float intensity=",LUA_GETLINESENSOR_COMMAND,"(int k3Handle,int index)"),LUA_GETLINESENSOR_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_GETENCODER_COMMAND,"@","K3"),strConCat("int encoderValue=",LUA_GETENCODER_COMMAND,"(int k3Handle,int index)"),LUA_GETENCODER_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_GETGRIPPERPROXSENSOR_COMMAND,"@","K3"),strConCat("float distance=",LUA_GETGRIPPERPROXSENSOR_COMMAND,"(int k3Handle,int index)"),LUA_GETGRIPPERPROXSENSOR_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_SETARMPOSITION_COMMAND,"@","K3"),strConCat("bool result=",LUA_SETARMPOSITION_COMMAND,"(int k3Handle,float position)"),LUA_SETARMPOSITION_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_SETGRIPPERGAP_COMMAND,"@","K3"),strConCat("bool result=",LUA_SETGRIPPERGAP_COMMAND,"(int k3Handle,float gap)"),LUA_SETGRIPPERGAP_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_SETVELOCITY_COMMAND,"@","K3"),strConCat("bool result=",LUA_SETVELOCITY_COMMAND,"(int k3Handle,float leftVelocity,float rightVelocity)"),LUA_SETVELOCITY_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_SETENCODERS_COMMAND,"@","K3"),strConCat("bool result=",LUA_SETENCODERS_COMMAND,"(int k3Handle,int leftEncoderValue,int rightEncoderValue)"),LUA_SETENCODERS_CALLBACK);
 
     // Following for backward compatibility:
     simRegisterScriptVariable("simExtK3_create",LUA_CREATE_COMMAND,-1);
