@@ -596,7 +596,7 @@ SIM_DLLEXPORT unsigned char simStart(void* reservedPointer,int reservedInt)
     }
 
     // Register the new functions:
-    simRegisterScriptCallbackFunction(strConCat(LUA_CREATE_COMMAND,"@","K3"),strConCat("int k3Handle=",LUA_CREATE_COMMAND,"(table_2 wheelMotorHandles,table_2 colorSensorHandles,table_9 IrSensorHandles,table_5 usSensorHandles,table_6 armMotorHandles,table_3 fingerMotorHandles,table_2 gripperDistSensHandles,table_2 gripperColSensHandles)"),LUA_CREATE_CALLBACK);
+    simRegisterScriptCallbackFunction(strConCat(LUA_CREATE_COMMAND,"@","K3"),strConCat("int k3Handle=",LUA_CREATE_COMMAND,"(int[2] wheelMotorHandles,int[2] colorSensorHandles,int[9] IrSensorHandles,int[5] usSensorHandles,int[6] armMotorHandles,int[3] fingerMotorHandles,int[2] gripperDistSensHandles,int[2] gripperColSensHandles)"),LUA_CREATE_CALLBACK);
     simRegisterScriptCallbackFunction(strConCat(LUA_DESTROY_COMMAND,"@","K3"),strConCat("bool result=",LUA_DESTROY_COMMAND,"(int k3Handle)"),LUA_DESTROY_CALLBACK);
     simRegisterScriptCallbackFunction(strConCat(LUA_GETINFRARED_COMMAND,"@","K3"),strConCat("float distance=",LUA_GETINFRARED_COMMAND,"(int k3Handle,int index)"),LUA_GETINFRARED_CALLBACK);
     simRegisterScriptCallbackFunction(strConCat(LUA_GETULTRASONIC_COMMAND,"@","K3"),strConCat("float distance=",LUA_GETULTRASONIC_COMMAND,"(int k3Handle,int index)"),LUA_GETULTRASONIC_CALLBACK);
